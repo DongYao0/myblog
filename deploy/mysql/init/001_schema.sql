@@ -11,3 +11,23 @@ CREATE TABLE IF NOT EXISTS health_check_marker (
 INSERT INTO health_check_marker(name)
 SELECT 'bootstrap'
 WHERE NOT EXISTS (SELECT 1 FROM health_check_marker WHERE name = 'bootstrap');
+
+CREATE TABLE IF NOT EXISTS user_account (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  password_hash VARCHAR(128) NOT NULL,
+  role VARCHAR(32) NOT NULL DEFAULT 'USER',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS article (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(200) NOT NULL,
+  content TEXT NOT NULL,
+  author_id BIGINT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PUBLISHED',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_article_author_id(author_id),
+  FULLTEXT KEY ft_article_title_content(title, content)
+);
