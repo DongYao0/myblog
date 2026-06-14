@@ -39,7 +39,7 @@ docker compose -f deploy/docker-compose.yml ps
 - MySQL：`13306`
 - Redis：`16379`
 - RocketMQ NameServer：`9876`
-- RocketMQ Broker：`11011`、`11009`
+- RocketMQ Broker：`10911`、`10909`
 - Elasticsearch：`9200`
 
 ## 验证接口
@@ -48,6 +48,12 @@ docker compose -f deploy/docker-compose.yml ps
 curl.exe -m 10 http://localhost:18080/api/blog/health
 curl.exe -m 10 http://localhost:18000/health
 ```
+
+## RocketMQ AI 任务链路
+
+- Blog Service 提交摘要任务后向 `ai-task-topic` 发送 `AI_SUMMARY_REQUESTED` 消息。
+- Blog Service 内置消费者消费该消息，并把任务状态推进为 `PROCESSING -> SUCCESS`。
+- 如果 RocketMQ 不可用，调度器会自动回退到本地执行，保证演示链路不中断。
 
 ## 第一阶段验收
 

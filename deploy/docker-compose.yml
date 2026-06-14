@@ -38,14 +38,16 @@ services:
   rocketmq-broker:
     image: apache/rocketmq:5.2.0
     container_name: myblog-rocketmq-broker
-    command: sh mqbroker -n rocketmq-namesrv:9876
+    command: sh mqbroker -c /home/rocketmq/broker.conf
     depends_on:
       - rocketmq-namesrv
     environment:
       NAMESRV_ADDR: rocketmq-namesrv:9876
+    volumes:
+      - ./rocketmq/broker.conf:/home/rocketmq/broker.conf:ro
     ports:
-      - "11011:10911"
-      - "11009:10909"
+      - "10911:10911"
+      - "10909:10909"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
