@@ -56,8 +56,15 @@ export function App() {
 
   async function refreshArticles(token = auth?.token) {
     if (!token) return;
-    const response = await listArticles(token);
-    setArticles(response.articles);
+    try {
+      const response = await listArticles(token);
+      setArticles(response.articles);
+    } catch (error) {
+      localStorage.removeItem("myblog-auth");
+      setAuth(null);
+      setArticles([]);
+      setNotice({ kind: "error", text: "登录已过期，请重新登录" });
+    }
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
