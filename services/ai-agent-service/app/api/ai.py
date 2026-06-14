@@ -20,12 +20,19 @@ class SummaryResponse(BaseModel):
 
 class AgentChatRequest(BaseModel):
     message: str
+    session_id: str = "default"
 
 
 class AgentChatResponse(BaseModel):
     answer: str
     tools_used: list[str]
     context: list[str]
+    memory: list[str] = []
+
+
+class AgentDocumentRequest(BaseModel):
+    document_id: str
+    content: str
 
 
 @router.post("/summary")
@@ -36,8 +43,19 @@ def summarize(request: SummaryRequest) -> SummaryResponse:
 
 @router.post("/agent/chat")
 def agent_chat(request: AgentChatRequest) -> AgentChatResponse:
-    response: AgentResponse = agent.chat(request.message)
-    return AgentChatResponse(answer=response.answer, tools_used=response.tools_used, context=response.context)
+    response: AgentResponse = agent.chat(request.message, request.session_id)
+    return AgentChatResponse(
+        answer=response.answer,
+        tools_used=response.tools_used,
+        context=response.context,
+        memory=response.memory,
+    )
+
+
+@router.post("/agent/documents")
+def add_agent_document(request: AgentDocumentRequest) -> dict[str, str]:
+    agent.add_article(request.document_id, request.content)
+    return {"status": "indexed", "document_id": request.document_id}
 
 
 @router.get("/chat/stream")

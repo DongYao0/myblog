@@ -25,6 +25,11 @@ public class ArticleController {
         return articleService.create(request);
     }
 
+    @GetMapping
+    public Map<String, Object> list() {
+        return Map.of("articles", articleService.list());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Article> get(@PathVariable("id") Long id) {
         return articleService.get(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());

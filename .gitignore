@@ -1,8 +1,10 @@
 node_modules/
 dist/
 target/
+data/
 *.tsbuildinfo
 *.log
+.env
 .e2e-pids.txt
 __pycache__/
 .pytest_cache/

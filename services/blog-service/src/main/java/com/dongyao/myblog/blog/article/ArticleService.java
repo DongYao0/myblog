@@ -2,6 +2,7 @@ package com.dongyao.myblog.blog.article;
 
 import com.dongyao.myblog.blog.search.ArticleSearchService;
 import com.dongyao.myblog.blog.search.SearchDocument;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,10 @@ public class ArticleService {
         Optional<Article> loaded = articles.findById(id);
         loaded.ifPresent(cache::put);
         return loaded;
+    }
+
+    public List<Article> list() {
+        return articles.findAll();
     }
 
     public Article update(Long id, ArticleUpdateRequest request) {

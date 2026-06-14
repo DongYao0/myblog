@@ -55,6 +55,10 @@ class ArticleCacheServiceTest {
             return Optional.ofNullable(article);
         }
 
+        public java.util.List<Article> findAll() {
+            return article == null ? java.util.List.of() : java.util.List.of(article);
+        }
+
         public Article update(Long id, String title, String content) {
             article = article.withContent(title, content);
             return article;

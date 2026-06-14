@@ -14,9 +14,11 @@ class ArticleServiceTest {
         ArticleService service = new ArticleService(articles);
 
         Article created = service.create(new ArticleCreateRequest("title", "content", 7L));
+        service.create(new ArticleCreateRequest("second", "more content", 7L));
         Article updated = service.update(created.id(), new ArticleUpdateRequest("new title", "new content"));
 
         assertThat(created.id()).isPositive();
+        assertThat(service.list()).extracting(Article::title).containsExactly("new title", "second");
         assertThat(service.get(created.id()).orElseThrow().title()).isEqualTo("new title");
         assertThat(updated.content()).isEqualTo("new content");
         Optional<Article> deleted = service.delete(created.id());
@@ -38,6 +40,11 @@ class ArticleServiceTest {
         @Override
         public Optional<Article> findById(Long id) {
             return Optional.ofNullable(rows.get(id));
+        }
+
+        @Override
+        public java.util.List<Article> findAll() {
+            return new java.util.ArrayList<>(rows.values());
         }
 
         @Override

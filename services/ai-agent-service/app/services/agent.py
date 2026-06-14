@@ -1,14 +1,19 @@
 import ast
 import operator
+import os
 import re
 from dataclasses import dataclass, field
 
 try:
     from langchain_core.tools import tool
-except Exception:  # pragma: no cover - keeps local demo usable before deps install
+except Exception:  # pragma: no cover
     def tool(func):
         func.name = func.__name__
         return func
+
+from app.services.llm import DeepSeekClient, LlmClient, LocalLlm
+from app.services.memory import AgentMemoryStore
+from app.services.vector_store import VectorStore
 
 
 @tool
@@ -17,50 +22,71 @@ def calculator(expression: str) -> str:
     return str(_safe_eval(expression))
 
 
-@tool
-def article_retriever(query: str) -> str:
-    """Retrieve matching article snippets from the local article memory."""
-    return query
-
-
 @dataclass
 class AgentResponse:
     answer: str
     tools_used: list[str] = field(default_factory=list)
     context: list[str] = field(default_factory=list)
+    memory: list[str] = field(default_factory=list)
 
 
 class BlogAgent:
-    def __init__(self) -> None:
-        self._articles: dict[str, str] = {}
+    def __init__(
+        self,
+        llm: LlmClient | None = None,
+        memory: AgentMemoryStore | None = None,
+        vectors: VectorStore | None = None,
+    ) -> None:
+        self.llm = llm or _build_llm()
+        self.memory = memory or AgentMemoryStore()
+        self.vectors = vectors or VectorStore()
 
     def add_article(self, article_id: str, content: str) -> None:
-        self._articles[article_id] = content
+        self.vectors.upsert(article_id, content, {"kind": "article"})
 
-    def chat(self, message: str) -> AgentResponse:
+    def chat(self, message: str, session_id: str = "default") -> AgentResponse:
         expression = _extract_expression(message)
         if expression:
-            return AgentResponse(answer=calculator.invoke({"expression": expression}) if hasattr(calculator, "invoke") else calculator(expression), tools_used=["calculator"])
+            answer = calculator.invoke({"expression": expression}) if hasattr(calculator, "invoke") else calculator(expression)
+            self._remember(session_id, message, answer)
+            return AgentResponse(answer=answer, tools_used=["calculator"], memory=self._memory_text(session_id))
 
-        matches = self._retrieve(message)
-        if matches:
-            context = [content for _, content in matches]
-            return AgentResponse(answer=context[0], tools_used=["article_retriever"], context=context)
+        results = self.vectors.search(message, limit=3)
+        context = [item.content for item in results]
+        tools = ["article_retriever"] if context else []
+        memory = self._memory_text(session_id)
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are MyBlog's AI Agent. Answer in Chinese when the user writes Chinese. "
+                    "Use the supplied Context and Memory. Context:\n" + "\n---\n".join(context)
+                ),
+            },
+            {"role": "system", "content": "Memory:\n" + "\n".join(memory)},
+            {"role": "user", "content": message},
+        ]
+        answer = self.llm.chat(messages)
+        self._remember(session_id, message, answer)
+        return AgentResponse(answer=answer, tools_used=tools or ["deepseek_chat"], context=context, memory=memory)
 
-        return AgentResponse(
-            answer="AI Agent 已启用工具调用、短期记忆与文章 RAG；请提供文章内容或明确计算任务。",
-            tools_used=[],
-            context=[],
+    def _remember(self, session_id: str, message: str, answer: str) -> None:
+        self.memory.add(session_id, "user", message)
+        self.memory.add(session_id, "assistant", answer)
+
+    def _memory_text(self, session_id: str) -> list[str]:
+        return [f"{item.role}: {item.content}" for item in self.memory.recent(session_id)]
+
+
+def _build_llm() -> LlmClient:
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    if api_key:
+        return DeepSeekClient(
+            api_key=api_key,
+            base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
         )
-
-    def _retrieve(self, query: str) -> list[tuple[str, str]]:
-        keywords = {word.lower() for word in re.findall(r"[A-Za-z0-9]+", query)}
-        results = []
-        for article_id, content in self._articles.items():
-            haystack = content.lower()
-            if any(keyword in haystack for keyword in keywords):
-                results.append((article_id, content))
-        return results[:3]
+    return LocalLlm()
 
 
 def _extract_expression(message: str) -> str | None:

@@ -2,7 +2,7 @@ package com.dongyao.myblog.blog.article;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -35,7 +35,17 @@ public class JdbcArticleRepository implements ArticleRepository {
     @Override
     public Optional<Article> findById(Long id) {
         String sql = "select id, title, content, author_id, status, created_at, updated_at from article where id = ?";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> new Article(
+        return jdbcTemplate.query(sql, (rs, rowNum) -> mapArticle(rs), id).stream().findFirst();
+    }
+
+    @Override
+    public List<Article> findAll() {
+        String sql = "select id, title, content, author_id, status, created_at, updated_at from article order by id desc";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> mapArticle(rs));
+    }
+
+    private Article mapArticle(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return new Article(
                 rs.getLong("id"),
                 rs.getString("title"),
                 rs.getString("content"),
@@ -43,7 +53,7 @@ public class JdbcArticleRepository implements ArticleRepository {
                 rs.getString("status"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant()
-        ), id).stream().findFirst();
+        );
     }
 
     @Override
