@@ -1,270 +1,271 @@
-# MyBlog AI Cloud Design
+# MyBlog AI Cloud 架构设计
 
-Date: 2026-06-14
+日期：2026-06-14
 
-## Goal
+## 目标
 
-Build an interview-ready intelligent blog microservice platform that combines Spring Cloud Alibaba with a Python AI Agent. The first deliverable must be runnable by one developer and demonstrate a complete engineering loop: gateway access, service discovery, blog CRUD, Redis cache, RocketMQ async AI tasks, Elasticsearch search, FastAPI AI service, and Docker Compose deployment.
+构建一个适合应届生求职展示的智能博客微服务平台。项目以 Spring Cloud Alibaba 为 Java 微服务底座，以 Python FastAPI AI Agent 为智能能力模块，第一版必须能由个人完整落地，并形成可演示闭环：网关入口、服务发现、博客 CRUD、Redis 缓存、RocketMQ 异步 AI 任务、Elasticsearch 搜索、FastAPI AI 服务、Docker Compose 本地部署。
 
-## Scope
+## 第一版范围
 
-In scope for the first version:
+必须落地：
 
-- Spring Cloud Gateway as the unified HTTP entry.
-- Nacos for service discovery and centralized configuration.
-- Blog Service for users, articles, comments, tags, search, and AI task state.
-- FastAPI AI Agent Service for article summary, article Q&A, and streaming chat.
-- Redis for hot article cache, login/token auxiliary data, idempotency keys, and distributed locks.
-- RocketMQ for long-running AI summary tasks.
-- Elasticsearch for article full-text search.
-- Docker Compose for local one-command infrastructure startup.
-- Minimal frontend-ready APIs, even if the first pass is backend-first.
+- Spring Cloud Gateway 作为统一 HTTP 入口。
+- Nacos 作为服务注册发现与配置中心。
+- Blog Service 负责用户、文章、评论、标签、搜索与 AI 任务状态。
+- FastAPI AI Agent Service 负责文章摘要、文章问答与流式对话。
+- Redis 负责热点文章缓存、登录辅助数据、幂等键与分布式锁。
+- RocketMQ 负责长耗时 AI 摘要任务。
+- Elasticsearch 负责博客全文搜索。
+- Docker Compose 负责本地一键启动基础设施。
+- 提供可被前端接入的 API，即使第一阶段以后端优先。
 
-Out of scope for the first version:
+暂不纳入第一版：
 
-- Kubernetes.
-- Seata distributed transactions.
-- Redis Cluster.
-- MySQL primary-replica deployment.
-- SkyWalking, Prometheus, and Grafana.
-- Complex recommendation systems or content moderation.
+- Kubernetes。
+- Seata 分布式事务。
+- Redis Cluster。
+- MySQL 主从。
+- SkyWalking、Prometheus、Grafana。
+- 复杂推荐系统与内容审核系统。
 
-## Architecture
+## 总体架构
 
 ```text
-Frontend or API Client
+前端或 API 客户端
         |
         v
 Spring Cloud Gateway
-  - JWT auth filter
-  - CORS
-  - route forwarding
-  - basic rate limiting
+  - JWT 鉴权过滤器
+  - 跨域处理
+  - 路由转发
+  - 基础限流
         |
         +----------------------+
         |                      |
         v                      v
 Blog Service              AI Agent Service
 Spring Boot               FastAPI
-MyBatis-Plus              LangChain or direct LLM adapter
-Redis client              SSE streaming endpoints
-RocketMQ producer         RocketMQ consumer
-Elasticsearch client      Article tool APIs
+MyBatis-Plus              LangChain 或直接 LLM 适配器
+Redis Client              SSE 流式接口
+RocketMQ Producer         RocketMQ Consumer
+Elasticsearch Client      文章工具接口
         |
         v
 MySQL / Redis / RocketMQ / Elasticsearch / Nacos
 ```
 
-## Services
+## 服务划分
 
 ### Gateway Service
 
-Responsibilities:
+职责：
 
-- Route `/api/blog/**` to Blog Service.
-- Route `/api/ai/**` to AI Agent Service.
-- Validate JWT for protected routes.
-- Allow public access for login, register, article list, article detail, and search.
-- Add request metadata such as user id and trace id headers when available.
-- Apply simple route-level rate limits, especially for AI endpoints.
+- 将 `/api/blog/**` 路由到 Blog Service。
+- 将 `/api/ai/**` 路由到 AI Agent Service。
+- 对受保护接口校验 JWT。
+- 放行登录、注册、文章列表、文章详情、搜索等公开接口。
+- 在有登录态时透传用户 ID、Trace ID 等请求元数据。
+- 对 AI 接口做基础限流，避免大模型调用被刷爆。
 
-Dependencies:
+依赖：
 
-- Nacos discovery.
-- Redis for optional gateway rate-limit storage.
+- Nacos 服务发现。
+- Redis，可用于网关限流存储。
 
 ### Blog Service
 
-Responsibilities:
+职责：
 
-- User registration and login.
-- Article CRUD.
-- Article detail cache with Redis.
-- Comment and tag management.
-- Article search through Elasticsearch.
-- AI task creation and state query.
-- RocketMQ message production for asynchronous AI summary tasks.
-- Persist AI generated summary result after callback or pull update.
+- 用户注册与登录。
+- 文章 CRUD。
+- 使用 Redis 缓存文章详情。
+- 评论与标签管理。
+- 通过 Elasticsearch 查询文章。
+- 创建 AI 任务并查询任务状态。
+- 向 RocketMQ 投递异步 AI 摘要任务。
+- 持久化 AI 生成的摘要结果。
 
-Core modules:
+核心模块：
 
-- `auth`: user account, password hash, JWT issue.
-- `article`: article CRUD, publish state, tags.
-- `search`: Elasticsearch index sync and query.
-- `cache`: Redis cache read/write and invalidation.
-- `ai-task`: task submit, status transition, result storage.
-- `mq`: RocketMQ producer and message model.
+- `auth`：用户账号、密码哈希、JWT 签发。
+- `article`：文章 CRUD、发布状态、标签。
+- `search`：Elasticsearch 索引同步与查询。
+- `cache`：Redis 缓存读写与失效。
+- `ai-task`：任务提交、状态流转、结果存储。
+- `mq`：RocketMQ 生产者与消息模型。
 
 ### AI Agent Service
 
-Responsibilities:
+职责：
 
-- Provide synchronous article summary API for small content.
-- Provide asynchronous RocketMQ consumer for long summary tasks.
-- Provide SSE streaming chat endpoint.
-- Provide article Q&A endpoint.
-- Call Blog Service tool APIs when it needs article context.
-- Isolate LLM failures and return stable degraded responses.
+- 为短文本提供同步文章摘要接口。
+- 消费 RocketMQ 中的长耗时 AI 摘要任务。
+- 提供 SSE 流式对话接口。
+- 提供文章问答接口。
+- 需要文章上下文时调用 Blog Service 内部工具 API。
+- 隔离 LLM 超时与供应商异常，返回稳定降级结果。
 
-Core modules:
+核心模块：
 
-- `api`: FastAPI routers.
-- `agent`: Agent orchestration and tool calling.
-- `llm`: LLM provider adapter.
-- `mq`: RocketMQ consumer.
-- `clients`: Blog Service HTTP client.
-- `schemas`: request and response models.
+- `api`：FastAPI 路由。
+- `agent`：Agent 编排与工具调用。
+- `llm`：大模型供应商适配器。
+- `mq`：RocketMQ 消费者。
+- `clients`：Blog Service HTTP 客户端。
+- `schemas`：请求与响应模型。
 
-## Data Flow
+## 核心流程
 
-### Article Detail Cache
+### 文章详情缓存
 
-1. Client requests `GET /api/blog/articles/{id}` through Gateway.
-2. Blog Service checks Redis key `article:detail:{id}`.
-3. Cache hit returns cached article data.
-4. Cache miss reads MySQL, writes Redis with TTL, then returns data.
-5. Article update or delete invalidates related Redis keys and updates Elasticsearch.
+1. 客户端通过 Gateway 请求 `GET /api/blog/articles/{id}`。
+2. Blog Service 查询 Redis Key `article:detail:{id}`。
+3. 命中缓存时直接返回文章数据。
+4. 未命中时读取 MySQL，写入 Redis 并设置 TTL，然后返回数据。
+5. 文章更新或删除时失效相关 Redis Key，并同步更新 Elasticsearch。
 
-### Article Search
+### 文章搜索
 
-1. Client requests `GET /api/blog/search?keyword=...`.
-2. Blog Service queries Elasticsearch article index.
-3. Search result returns article id, title, highlight snippet, tags, and publish time.
-4. If Elasticsearch fails, Blog Service returns a clear degraded error instead of silently falling back to slow broad MySQL LIKE.
+1. 客户端请求 `GET /api/blog/search?keyword=...`。
+2. Blog Service 查询 Elasticsearch 的文章索引。
+3. 返回文章 ID、标题、高亮摘要、标签与发布时间。
+4. Elasticsearch 异常时返回明确的搜索降级错误，不静默退化为大范围 MySQL LIKE。
 
-### Async AI Summary
+### 异步 AI 摘要
 
-1. Client requests `POST /api/blog/ai/tasks/summary` with article id.
-2. Blog Service validates article ownership or visibility.
-3. Blog Service uses Redis lock `lock:ai-summary:{articleId}` to prevent duplicate submissions.
-4. Blog Service creates an AI task in MySQL with status `PENDING`.
-5. Blog Service sends RocketMQ message `AI_SUMMARY_REQUESTED`.
-6. AI Agent Service consumes the message and loads article content through Blog Service API.
-7. AI Agent Service calls the LLM and produces a summary.
-8. AI Agent Service updates Blog Service task result through an internal API.
-9. Client polls `GET /api/blog/ai/tasks/{taskId}` until status is `SUCCESS` or `FAILED`.
+1. 客户端请求 `POST /api/blog/ai/tasks/summary`，提交文章 ID。
+2. Blog Service 校验文章权限或可见性。
+3. Blog Service 使用 Redis 锁 `lock:ai-summary:{articleId}` 防止重复提交。
+4. Blog Service 在 MySQL 创建状态为 `PENDING` 的 AI 任务。
+5. Blog Service 发送 RocketMQ 消息 `AI_SUMMARY_REQUESTED`。
+6. AI Agent Service 消费消息，并通过 Blog Service API 读取文章内容。
+7. AI Agent Service 调用 LLM 生成摘要。
+8. AI Agent Service 调用 Blog Service 内部接口回写任务结果。
+9. 客户端轮询 `GET /api/blog/ai/tasks/{taskId}`，直到状态为 `SUCCESS` 或 `FAILED`。
 
-Status model:
+任务状态：
 
-- `PENDING`: task has been created.
-- `PROCESSING`: AI service has started work.
-- `SUCCESS`: result is available.
-- `FAILED`: task failed with an error message.
+- `PENDING`：任务已创建。
+- `PROCESSING`：AI 服务已开始处理。
+- `SUCCESS`：结果已生成。
+- `FAILED`：任务失败，并保存错误信息。
 
-### SSE AI Chat
+### SSE AI 对话
 
-1. Client connects to `GET /api/ai/chat/stream`.
-2. Gateway routes the request to AI Agent Service and keeps the streaming response open.
-3. AI Agent Service streams tokens as SSE events.
-4. If LLM call fails, AI Agent Service emits an error event and closes the stream.
+1. 客户端连接 `GET /api/ai/chat/stream`。
+2. Gateway 将请求转发到 AI Agent Service，并保持流式响应。
+3. AI Agent Service 以 SSE 事件流输出 token。
+4. LLM 调用失败时，AI Agent Service 发送错误事件并关闭流。
 
-## Storage Design
+## 存储设计
 
-Minimum MySQL tables:
+MySQL 最小表集合：
 
-- `user`: account, password hash, role, created time.
-- `article`: title, content, summary, author id, status, counters, timestamps.
-- `tag`: tag name.
-- `article_tag`: article-tag relation.
-- `comment`: article comments.
-- `ai_task`: task type, article id, status, result, error message, timestamps.
+- `user`：账号、密码哈希、角色、创建时间。
+- `article`：标题、正文、摘要、作者 ID、状态、计数器、时间戳。
+- `tag`：标签名称。
+- `article_tag`：文章与标签关系。
+- `comment`：文章评论。
+- `ai_task`：任务类型、文章 ID、状态、结果、错误信息、时间戳。
 
-Redis key conventions:
+Redis Key 约定：
 
-- `article:detail:{articleId}`.
-- `article:hot:list`.
-- `lock:ai-summary:{articleId}`.
-- `auth:refresh:{userId}` if refresh tokens are implemented.
+- `article:detail:{articleId}`。
+- `article:hot:list`。
+- `lock:ai-summary:{articleId}`。
+- `auth:refresh:{userId}`，仅在实现 Refresh Token 时使用。
 
-Elasticsearch index:
+Elasticsearch 索引：
 
-- `blog_article`.
-- Fields: `id`, `title`, `content`, `summary`, `tags`, `authorId`, `status`, `createdAt`, `updatedAt`.
+- 索引名：`blog_article`。
+- 字段：`id`、`title`、`content`、`summary`、`tags`、`authorId`、`status`、`createdAt`、`updatedAt`。
 
-RocketMQ topics:
+RocketMQ Topic：
 
-- `ai-task-topic`.
-- Tags: `AI_SUMMARY_REQUESTED`.
+- Topic：`ai-task-topic`。
+- Tag：`AI_SUMMARY_REQUESTED`。
 
-## Error Handling
+## 错误处理
 
-- Gateway rejects invalid JWT with `401`.
-- Gateway rejects excessive AI calls with `429`.
-- Blog Service returns `404` for missing articles and `409` for duplicate AI task submission.
-- Redis failure must not break article reads; Blog Service can read MySQL directly and skip cache write.
-- Elasticsearch failure returns a search-specific degraded error.
-- RocketMQ send failure marks AI task as `FAILED_TO_QUEUE` or returns submission failure before task is accepted.
-- AI Agent Service catches LLM timeout and provider errors, marks the task as `FAILED`, and stores a user-readable error message.
-- SSE endpoints must emit an error event before closing when streaming fails after the response starts.
+- Gateway 对无效 JWT 返回 `401`。
+- Gateway 对过量 AI 请求返回 `429`。
+- Blog Service 对不存在文章返回 `404`。
+- Blog Service 对重复 AI 任务提交返回 `409`。
+- Redis 异常不能阻断文章读取；Blog Service 可直接读 MySQL，并跳过缓存写入。
+- Elasticsearch 异常返回搜索专用降级错误。
+- RocketMQ 发送失败时，任务不得假装已受理；要么返回提交失败，要么标记为 `FAILED_TO_QUEUE`。
+- AI Agent Service 捕获 LLM 超时和供应商异常，标记任务为 `FAILED`，并保存用户可读错误信息。
+- SSE 流开始后失败时，必须先发送错误事件再关闭连接。
 
-## Testing Strategy
+## 测试策略
 
-- Unit tests for article cache logic, AI task status transitions, and JWT utility.
-- Integration tests for Blog Service with MySQL, Redis, RocketMQ, and Elasticsearch containers where practical.
-- FastAPI tests for summary, chat stream, and callback failure paths.
-- Gateway route tests for public and protected endpoints.
-- Docker Compose smoke test: infrastructure starts, services register to Nacos, and basic article and AI task flows work.
+- 单元测试覆盖文章缓存逻辑、AI 任务状态流转、JWT 工具类。
+- Blog Service 集成测试覆盖 MySQL、Redis、RocketMQ、Elasticsearch 的关键路径。
+- FastAPI 测试覆盖摘要接口、流式对话、回写失败路径。
+- Gateway 测试覆盖公开接口与受保护接口的路由和鉴权。
+- Docker Compose 冒烟测试验证基础设施启动、服务注册、文章流程与 AI 任务流程。
 
-## Milestones
+## 里程碑
 
-### Milestone 1: Infrastructure and Skeleton
+### 里程碑 1：基础设施与项目骨架
 
-- Repository structure.
-- Docker Compose for Nacos, MySQL, Redis, RocketMQ, Elasticsearch.
-- Gateway Service skeleton.
-- Blog Service skeleton.
-- AI Agent Service skeleton.
+- 建立仓库目录结构。
+- 编写 Nacos、MySQL、Redis、RocketMQ、Elasticsearch 的 Docker Compose。
+- 初始化 Gateway Service。
+- 初始化 Blog Service。
+- 初始化 AI Agent Service。
 
-### Milestone 2: Blog Core
+### 里程碑 2：博客核心能力
 
-- User auth.
-- Article CRUD.
-- Redis article cache.
-- Basic Gateway routes and JWT validation.
+- 用户鉴权。
+- 文章 CRUD。
+- Redis 文章详情缓存。
+- Gateway 基础路由与 JWT 校验。
 
-### Milestone 3: Search
+### 里程碑 3：全文搜索
 
-- Elasticsearch article index.
-- Article publish/update/delete index sync.
-- Search API.
+- 建立 Elasticsearch 文章索引。
+- 发布、更新、删除文章时同步索引。
+- 实现搜索 API。
 
-### Milestone 4: AI Async Flow
+### 里程碑 4：AI 异步任务
 
-- AI task table.
-- RocketMQ producer in Blog Service.
-- RocketMQ consumer in AI Agent Service.
-- AI result update API.
-- Task status query API.
+- 建立 AI 任务表。
+- Blog Service 接入 RocketMQ 生产者。
+- AI Agent Service 接入 RocketMQ 消费者。
+- 实现 AI 结果回写 API。
+- 实现任务状态查询 API。
 
-### Milestone 5: AI Streaming
+### 里程碑 5：AI 流式对话
 
-- SSE chat endpoint.
-- Gateway route support for streaming.
-- Basic Agent tool for article lookup.
+- 实现 SSE 对话接口。
+- 确认 Gateway 支持流式转发。
+- 为 Agent 增加文章查询工具。
 
-## Resume Positioning
+## 简历定位
 
-Project title:
+项目名称：
 
-`Intelligent Blog Microservice Platform Based on Spring Cloud Alibaba and FastAPI AI Agent`
+`基于 Spring Cloud Alibaba 与 FastAPI AI Agent 的智能博客微服务平台`
 
-Resume emphasis:
+简历表达重点：
 
-- Built a microservice blog platform with Spring Cloud Gateway, Nacos, Redis, RocketMQ, Elasticsearch, and Docker Compose.
-- Designed an asynchronous AI summary workflow using RocketMQ to decouple long-running LLM calls from user requests.
-- Implemented Redis hot article caching and distributed duplicate-submit protection for AI tasks.
-- Integrated Elasticsearch full-text search for article title, content, tag, and summary queries.
-- Built a FastAPI AI Agent service with streaming output and internal tool calls for article context retrieval.
+- 基于 Spring Cloud Gateway、Nacos、Redis、RocketMQ、Elasticsearch、Docker Compose 构建智能博客微服务平台。
+- 使用 RocketMQ 设计异步 AI 摘要流程，解耦长耗时 LLM 调用与用户请求。
+- 使用 Redis 实现热点文章缓存，并基于分布式锁防止 AI 任务重复提交。
+- 集成 Elasticsearch 实现文章标题、正文、标签、摘要的全文搜索。
+- 使用 FastAPI 构建 AI Agent 服务，支持流式输出与文章上下文工具调用。
 
-## Acceptance Criteria
+## 验收标准
 
-- `docker compose up` starts all infrastructure dependencies.
-- Gateway can route requests to Blog Service and AI Agent Service.
-- Blog Service registers in Nacos.
-- AI Agent Service is discoverable or has a documented Nacos registration strategy.
-- Article CRUD works through Gateway.
-- Article detail cache can be verified through Redis keys.
-- Search returns Elasticsearch results.
-- AI summary task can be submitted, consumed, processed, and queried.
-- SSE chat endpoint streams events.
-- README documents startup steps and demo API calls.
+- `docker compose up` 能启动全部基础设施依赖。
+- Gateway 能路由到 Blog Service 与 AI Agent Service。
+- Blog Service 能注册到 Nacos。
+- AI Agent Service 可被发现，或具备明确的 Nacos 注册策略。
+- 文章 CRUD 能通过 Gateway 访问。
+- 文章详情缓存能通过 Redis Key 验证。
+- 搜索接口返回 Elasticsearch 查询结果。
+- AI 摘要任务可以提交、消费、处理、查询。
+- SSE 对话接口能持续输出事件流。
+- README 写明启动步骤与演示 API。
