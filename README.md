@@ -30,9 +30,29 @@ docker compose -f deploy/docker-compose.yml up -d
 docker compose -f deploy/docker-compose.yml ps
 ```
 
+## 本地端口
+
+- Gateway Service：`18080`
+- Blog Service：`18081`
+- AI Agent Service：`18000`
+- Nacos：`8848`
+- MySQL：`13306`
+- Redis：`16379`
+- RocketMQ NameServer：`9876`
+- RocketMQ Broker：`11011`、`11009`
+- Elasticsearch：`9200`
+
 ## 验证接口
 
 ```powershell
-curl.exe -m 10 http://localhost:8080/api/blog/health
-curl.exe -m 10 http://localhost:8000/health
+curl.exe -m 10 http://localhost:18080/api/blog/health
+curl.exe -m 10 http://localhost:18000/health
 ```
+
+## 第一阶段验收
+
+- `docker compose -f deploy/docker-compose.yml config` 可以通过。
+- `mvn -q -DskipTests package` 可以通过。
+- `python -m compileall app` 可以通过。
+- Blog Service 健康检查：`GET http://localhost:18080/api/blog/health`。
+- AI Agent Service 健康检查：`GET http://localhost:18000/health`。

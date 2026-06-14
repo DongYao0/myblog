@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     service_name: str = "ai-agent-service"
-    blog_service_base_url: str = "http://localhost:8081"
+    blog_service_base_url: str = "http://localhost:18081"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

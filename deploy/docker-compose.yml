@@ -18,7 +18,7 @@ services:
       MYSQL_USER: myblog
       MYSQL_PASSWORD: myblog
     ports:
-      - "3306:3306"
+      - "13306:3306"
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
 
@@ -26,7 +26,7 @@ services:
     image: redis:7.2
     container_name: myblog-redis
     ports:
-      - "6379:6379"
+      - "16379:6379"
 
   rocketmq-namesrv:
     image: apache/rocketmq:5.2.0
@@ -44,8 +44,8 @@ services:
     environment:
       NAMESRV_ADDR: rocketmq-namesrv:9876
     ports:
-      - "10911:10911"
-      - "10909:10909"
+      - "11011:10911"
+      - "11009:10909"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
