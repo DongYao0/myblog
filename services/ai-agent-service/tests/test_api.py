@@ -27,3 +27,11 @@ def test_chat_stream_returns_sse_events():
     assert response.status_code == 200
     assert "event: token" in body
     assert "data: hello" in body
+
+
+def test_agent_chat_returns_tools_and_answer():
+    response = client.post("/api/ai/agent/chat", json={"message": "请计算 3 + 5"})
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "8"
+    assert "calculator" in response.json()["tools_used"]

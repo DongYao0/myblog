@@ -16,6 +16,8 @@ services/
   gateway-service/
   blog-service/
   ai-agent-service/
+web/
+  admin-console/
 deploy/
   docker-compose.yml
   mysql/init/
@@ -32,6 +34,7 @@ docker compose -f deploy/docker-compose.yml ps
 
 ## 本地端口
 
+- Admin Console：`5173`
 - Gateway Service：`18080`
 - Blog Service：`18081`
 - AI Agent Service：`18000`
@@ -67,12 +70,23 @@ curl.exe -m 10 http://localhost:18000/health
 
 ```powershell
 curl.exe -m 10 -X POST http://localhost:18080/api/blog/auth/register -H "Content-Type: application/json" -d "{\"username\":\"commander\",\"password\":\"secret123\"}"
-curl.exe -m 10 -X POST http://localhost:18080/api/blog/auth/login -H "Content-Type: application/json" -d "{\"username\":\"commander\",\"password\":\"secret123\"}"
-curl.exe -m 10 -X POST http://localhost:18080/api/blog/articles -H "Content-Type: application/json" -d "{\"title\":\"Spring Cloud AI Blog\",\"content\":\"Gateway Nacos Redis RocketMQ Elasticsearch FastAPI\",\"authorId\":1}"
-curl.exe -m 10 http://localhost:18080/api/blog/articles/1
-curl.exe -m 10 "http://localhost:18080/api/blog/search?keyword=Spring"
-curl.exe -m 10 -X POST http://localhost:18080/api/blog/ai/tasks/summary -H "Content-Type: application/json" -d "{\"articleId\":1}"
-curl.exe -m 10 http://localhost:18080/api/blog/ai/tasks/1
+$login = Invoke-RestMethod -TimeoutSec 10 -Method Post -Uri "http://localhost:18080/api/blog/auth/login" -ContentType "application/json" -Body '{"username":"commander","password":"secret123"}'
+$token = $login.token
+Invoke-RestMethod -TimeoutSec 10 -Method Post -Uri "http://localhost:18080/api/blog/articles" -Headers @{Authorization="Bearer $token"} -ContentType "application/json" -Body '{"title":"Spring Cloud AI Blog","content":"Gateway Nacos Redis RocketMQ Elasticsearch FastAPI","authorId":1}'
+Invoke-RestMethod -TimeoutSec 10 -Method Get -Uri "http://localhost:18080/api/blog/articles/1" -Headers @{Authorization="Bearer $token"}
+Invoke-RestMethod -TimeoutSec 10 -Method Get -Uri "http://localhost:18080/api/blog/search?keyword=Spring" -Headers @{Authorization="Bearer $token"}
+Invoke-RestMethod -TimeoutSec 10 -Method Post -Uri "http://localhost:18080/api/blog/ai/tasks/summary" -Headers @{Authorization="Bearer $token"} -ContentType "application/json" -Body '{"articleId":1}'
+Invoke-RestMethod -TimeoutSec 10 -Method Post -Uri "http://localhost:18080/api/ai/agent/chat" -Headers @{Authorization="Bearer $token"} -ContentType "application/json" -Body '{"message":"请计算 6 * 7"}'
 curl.exe -m 10 -X POST http://localhost:18000/api/ai/summary -H "Content-Type: application/json" -d "{\"content\":\"one two three four five six\"}"
 curl.exe -m 10 "http://localhost:18000/api/ai/chat/stream?message=hello%20ai"
 ```
+
+## 前端管理台
+
+```powershell
+cd web/admin-console
+npm install
+npm run dev
+```
+
+浏览器访问 `http://127.0.0.1:5173`，登录后可以发布文章、全文搜索、提交 RocketMQ 摘要任务、调用 Agent 工具和查看流式输出。如本机 `5173` 已被占用，可执行 `npm run dev -- --port 15173`。

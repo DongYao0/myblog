@@ -4,7 +4,10 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.services.agent import AgentResponse, BlogAgent
+
 router = APIRouter(prefix="/api/ai")
+agent = BlogAgent()
 
 
 class SummaryRequest(BaseModel):
@@ -15,10 +18,26 @@ class SummaryResponse(BaseModel):
     summary: str
 
 
+class AgentChatRequest(BaseModel):
+    message: str
+
+
+class AgentChatResponse(BaseModel):
+    answer: str
+    tools_used: list[str]
+    context: list[str]
+
+
 @router.post("/summary")
 def summarize(request: SummaryRequest) -> SummaryResponse:
     words = request.content.split()
     return SummaryResponse(summary=" ".join(words[:5]))
+
+
+@router.post("/agent/chat")
+def agent_chat(request: AgentChatRequest) -> AgentChatResponse:
+    response: AgentResponse = agent.chat(request.message)
+    return AgentChatResponse(answer=response.answer, tools_used=response.tools_used, context=response.context)
 
 
 @router.get("/chat/stream")

@@ -1,0 +1,140 @@
+:root {
+  color: #1c1d20;
+  background: #eef0e8;
+  font-family: "Aptos", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea { font: inherit; }
+
+.shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 100vh;
+}
+
+.rail {
+  padding: 28px;
+  background: #181915;
+  color: #f4f1e6;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brand, h2, button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-bottom: 14px;
+}
+
+.workspace {
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.panel {
+  border: 1px solid #292b25;
+  border-radius: 8px;
+  background: #fffdf4;
+  padding: 18px;
+  box-shadow: 8px 8px 0 #c7d647;
+}
+
+.rail .panel {
+  background: #242620;
+  border-color: #5a604a;
+  box-shadow: none;
+}
+
+h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+input, textarea {
+  width: 100%;
+  border: 1px solid #303228;
+  border-radius: 6px;
+  background: #f7f5ea;
+  padding: 11px 12px;
+  margin-bottom: 10px;
+}
+
+textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+button {
+  justify-content: center;
+  min-height: 42px;
+  border: 0;
+  border-radius: 6px;
+  background: #d9ee45;
+  color: #181915;
+  padding: 0 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.notice {
+  padding: 12px;
+  border-radius: 6px;
+  background: #2c3127;
+  color: #dfe8b1;
+}
+
+.notice.error {
+  color: #ffd5cf;
+  background: #44201c;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #4c5145;
+  padding-top: 12px;
+}
+
+pre {
+  min-height: 118px;
+  overflow: auto;
+  white-space: pre-wrap;
+  border-radius: 6px;
+  background: #20211d;
+  color: #e7efc2;
+  padding: 12px;
+  margin: 12px 0 0;
+}
+
+@media (max-width: 900px) {
+  .shell, .grid { grid-template-columns: 1fr; }
+  .rail { min-height: auto; }
+}
