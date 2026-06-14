@@ -1,0 +1,16 @@
+.idea/
+.vscode/
+target/
+*.iml
+
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+*.pyc
+
+.env
+*.log
+
+deploy/data/
