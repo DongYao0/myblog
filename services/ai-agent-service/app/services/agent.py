@@ -1,6 +1,5 @@
 import ast
 import operator
-import os
 import re
 from dataclasses import dataclass, field
 
@@ -11,6 +10,7 @@ except Exception:  # pragma: no cover
         func.name = func.__name__
         return func
 
+from app.core.settings import settings
 from app.services.llm import DeepSeekClient, LlmClient, LocalLlm
 from app.services.memory import AgentMemoryStore
 from app.services.vector_store import VectorStore
@@ -79,12 +79,11 @@ class BlogAgent:
 
 
 def _build_llm() -> LlmClient:
-    api_key = os.getenv("DEEPSEEK_API_KEY")
-    if api_key:
+    if settings.deepseek_api_key:
         return DeepSeekClient(
-            api_key=api_key,
-            base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            api_key=settings.deepseek_api_key,
+            base_url=settings.deepseek_base_url,
+            model=settings.deepseek_model,
         )
     return LocalLlm()
 
