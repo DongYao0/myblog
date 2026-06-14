@@ -28,7 +28,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
-        if (isPublic(path) || exchange.getRequest().getMethod() == HttpMethod.OPTIONS) {
+        HttpMethod method = exchange.getRequest().getMethod();
+        if (isPublic(path, method) || method == HttpMethod.OPTIONS) {
             return chain.filter(exchange);
         }
         String header = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
@@ -44,9 +45,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return -100;
     }
 
-    private boolean isPublic(String path) {
+    private boolean isPublic(String path, HttpMethod method) {
         return path.equals("/api/blog/health")
                 || path.startsWith("/api/blog/auth/")
+                || (method == HttpMethod.GET && path.startsWith("/api/blog/articles"))
+                || (method == HttpMethod.GET && path.startsWith("/api/blog/search"))
+                || (method == HttpMethod.POST && path.equals("/api/ai/agent/chat"))
                 || path.startsWith("/actuator/");
     }
 }

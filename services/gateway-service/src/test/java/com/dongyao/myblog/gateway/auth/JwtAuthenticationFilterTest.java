@@ -22,6 +22,25 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsPublicBlogReadRoutesWithoutToken() {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(path -> false);
+        MockServerWebExchange listExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/blog/articles").build());
+        MockServerWebExchange detailExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/blog/articles/1").build());
+        MockServerWebExchange searchExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/blog/search?keyword=ai").build());
+
+        filter.filter(listExchange, current -> Mono.empty()).block();
+        filter.filter(detailExchange, current -> Mono.empty()).block();
+        filter.filter(searchExchange, current -> Mono.empty()).block();
+
+        assertThat(listExchange.getResponse().getStatusCode()).isNull();
+        assertThat(detailExchange.getResponse().getStatusCode()).isNull();
+        assertThat(searchExchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
     void rejectsProtectedRouteWithoutBearerToken() {
         JwtAuthenticationFilter filter = new JwtAuthenticationFilter(path -> false);
         MockServerWebExchange exchange = MockServerWebExchange.from(
@@ -30,6 +49,21 @@ class JwtAuthenticationFilterTest {
         filter.filter(exchange, current -> Mono.empty()).block();
 
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void allowsPublicAiChatButProtectsAgentWrites() {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(path -> false);
+        MockServerWebExchange chatExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/ai/agent/chat").build());
+        MockServerWebExchange documentExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/ai/agent/documents").build());
+
+        filter.filter(chatExchange, current -> Mono.empty()).block();
+        filter.filter(documentExchange, current -> Mono.empty()).block();
+
+        assertThat(chatExchange.getResponse().getStatusCode()).isNull();
+        assertThat(documentExchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test

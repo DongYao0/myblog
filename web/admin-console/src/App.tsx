@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Bot,
   Database,
+  ExternalLink,
   FilePlus2,
   Gauge,
   Layers3,
@@ -63,7 +64,7 @@ export function App() {
       localStorage.removeItem("myblog-auth");
       setAuth(null);
       setArticles([]);
-      setNotice({ kind: "error", text: "登录已过期，请重新登录" });
+      setNotice({ kind: "error", text: `登录已过期，请重新登录：${(error as Error).message}` });
     }
   }
 
@@ -77,7 +78,7 @@ export function App() {
       const result = mode === "register" ? await register(username, password) : await login(username, password);
       localStorage.setItem("myblog-auth", JSON.stringify(result));
       setAuth(result);
-      setNotice({ kind: "ok", text: `已接入 ${result.username}` });
+      setNotice({ kind: "ok", text: `已接入：${result.username}` });
     } catch (error) {
       setNotice({ kind: "error", text: `认证失败：${(error as Error).message}` });
     }
@@ -164,6 +165,9 @@ export function App() {
     <main className="shell">
       <aside className="rail">
         <div className="brand"><Sparkles /> MyBlog AI Cloud</div>
+        <a className="client-link" href="http://127.0.0.1:15174" target="_blank">
+          打开博客客户端 <ExternalLink size={15} />
+        </a>
         <form className="panel compact" onSubmit={handleAuth}>
           <h2><LockKeyhole /> 身份</h2>
           <input name="username" placeholder="commander" defaultValue="commander" />
@@ -196,8 +200,8 @@ export function App() {
         {view === "dashboard" && (
           <div className="dashboard">
             <section className="hero">
-              <h1>后台作战台</h1>
-              <p>内容、搜索、异步任务、DeepSeek Agent、长期记忆和本地向量库都在这里联动。</p>
+              <h1>管理端控制台</h1>
+              <p>面向运营和开发者：内容生产、搜索索引、异步摘要、DeepSeek Agent、长期记忆和 RAG 知识库都在这里维护。</p>
             </section>
             <div className="grid stats">
               <Metric title="文章数量" value={articles.length} icon={<Layers3 />} />
@@ -205,6 +209,12 @@ export function App() {
               <Metric title="最近任务" value={task?.status || "无"} icon={<Radio />} />
               <Metric title="记忆条数" value={agentMemory.length} icon={<Database />} />
             </div>
+            <section className="panel timeline">
+              <h2><Radio /> 当前系统分层</h2>
+              <p><b>博客客户端：</b>读者访问、文章阅读、搜索、AI 阅读助手。</p>
+              <p><b>管理端：</b>登录、文章 CRUD、RAG 入库、AI 调试、任务观察。</p>
+              <p><b>服务端：</b>Gateway 鉴权路由，Blog 业务，FastAPI Agent，Docker 中间件。</p>
+            </section>
           </div>
         )}
 
@@ -240,7 +250,12 @@ export function App() {
             <input name="keyword" placeholder="RocketMQ" disabled={!authed} />
             <button disabled={!authed}>搜索</button>
             <div className="result-list">
-              {searchRows.map((row) => <article key={row.id}><b>#{row.id} {row.title}</b><p>{row.content}</p></article>)}
+              {searchRows.map((row) => (
+                <article key={row.id}>
+                  <b>#{row.id} {row.title}</b>
+                  <p>{row.content}</p>
+                </article>
+              ))}
             </div>
           </form>
         )}

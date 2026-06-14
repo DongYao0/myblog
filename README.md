@@ -17,6 +17,7 @@ services/
   blog-service/
   ai-agent-service/
 web/
+  blog-client/
   admin-console/
 deploy/
   docker-compose.yml
@@ -35,6 +36,7 @@ docker compose -f deploy/docker-compose.yml ps
 ## 本地端口
 
 - Admin Console：`5173`
+- Blog Client：`15174`
 - Gateway Service：`18080`
 - Blog Service：`18081`
 - AI Agent Service：`18000`
@@ -90,3 +92,13 @@ npm run dev
 ```
 
 浏览器访问 `http://127.0.0.1:5173`，登录后可以发布文章、全文搜索、提交 RocketMQ 摘要任务、调用 Agent 工具和查看流式输出。如本机 `5173` 已被占用，可执行 `npm run dev -- --port 15173`。
+
+## 博客客户端
+
+```powershell
+cd web/blog-client
+npm install
+npm run dev
+```
+
+浏览器访问 `http://127.0.0.1:15174`。客户端面向读者，包含首页、文章列表、文章详情、全文搜索和 AI 阅读助手；管理端面向运营/开发者，负责文章 CRUD、RAG 入库和任务观察。
