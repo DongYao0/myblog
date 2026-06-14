@@ -31,3 +31,16 @@ CREATE TABLE IF NOT EXISTS article (
   INDEX idx_article_author_id(author_id),
   FULLTEXT KEY ft_article_title_content(title, content)
 );
+
+CREATE TABLE IF NOT EXISTS ai_task (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_type VARCHAR(32) NOT NULL,
+  article_id BIGINT NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  result TEXT NULL,
+  error_message VARCHAR(500) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ai_task_article_id(article_id),
+  INDEX idx_ai_task_status(status)
+);
