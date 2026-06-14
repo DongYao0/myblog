@@ -1,0 +1,19 @@
+[project]
+name = "myblog-ai-agent-service"
+version = "0.1.0"
+description = "FastAPI AI Agent service for MyBlog AI Cloud"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.111.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic-settings>=2.3.0",
+  "httpx>=0.27.0"
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2.0"
+]
+
+[tool.uvicorn]
+factory = false
