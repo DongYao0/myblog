@@ -23,7 +23,7 @@ public class AiTaskController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AiTask> get(@PathVariable Long id) {
+    public ResponseEntity<AiTask> get(@PathVariable("id") Long id) {
         return aiTaskService.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 

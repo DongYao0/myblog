@@ -56,3 +56,17 @@ curl.exe -m 10 http://localhost:18000/health
 - `python -m compileall app` 可以通过。
 - Blog Service 健康检查：`GET http://localhost:18080/api/blog/health`。
 - AI Agent Service 健康检查：`GET http://localhost:18000/health`。
+
+## MVP 演示命令
+
+```powershell
+curl.exe -m 10 -X POST http://localhost:18080/api/blog/auth/register -H "Content-Type: application/json" -d "{\"username\":\"commander\",\"password\":\"secret123\"}"
+curl.exe -m 10 -X POST http://localhost:18080/api/blog/auth/login -H "Content-Type: application/json" -d "{\"username\":\"commander\",\"password\":\"secret123\"}"
+curl.exe -m 10 -X POST http://localhost:18080/api/blog/articles -H "Content-Type: application/json" -d "{\"title\":\"Spring Cloud AI Blog\",\"content\":\"Gateway Nacos Redis RocketMQ Elasticsearch FastAPI\",\"authorId\":1}"
+curl.exe -m 10 http://localhost:18080/api/blog/articles/1
+curl.exe -m 10 "http://localhost:18080/api/blog/search?keyword=Spring"
+curl.exe -m 10 -X POST http://localhost:18080/api/blog/ai/tasks/summary -H "Content-Type: application/json" -d "{\"articleId\":1}"
+curl.exe -m 10 http://localhost:18080/api/blog/ai/tasks/1
+curl.exe -m 10 -X POST http://localhost:18000/api/ai/summary -H "Content-Type: application/json" -d "{\"content\":\"one two three four five six\"}"
+curl.exe -m 10 "http://localhost:18000/api/ai/chat/stream?message=hello%20ai"
+```

@@ -24,7 +24,7 @@ public class ElasticsearchArticleSearchClient implements ArticleSearchClient {
     public void index(SearchDocument document) {
         try {
             String body = objectMapper.writeValueAsString(document);
-            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/blog_article/_doc/" + document.id()))
+            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/blog_article/_doc/" + document.id() + "?refresh=true"))
                     .header("Content-Type", "application/json")
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build();

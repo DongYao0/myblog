@@ -26,17 +26,17 @@ public class ArticleController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Article> get(@PathVariable Long id) {
+    public ResponseEntity<Article> get(@PathVariable("id") Long id) {
         return articleService.get(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public Article update(@PathVariable Long id, @RequestBody ArticleUpdateRequest request) {
+    public Article update(@PathVariable("id") Long id, @RequestBody ArticleUpdateRequest request) {
         return articleService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public Map<String, Object> delete(@PathVariable Long id) {
+    public Map<String, Object> delete(@PathVariable("id") Long id) {
         return Map.of("deleted", articleService.delete(id).isPresent());
     }
 }
