@@ -1,26 +1,38 @@
 package com.dongyao.myblog.blog.article;
 
+import com.dongyao.myblog.blog.search.ArticleSearchService;
+import com.dongyao.myblog.blog.search.SearchDocument;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ArticleService {
     private final ArticleRepository articles;
     private final ArticleCache cache;
+    private final ArticleSearchService searchService;
 
     public ArticleService(ArticleRepository articles) {
-        this(articles, new NoopArticleCache());
+        this(articles, new NoopArticleCache(), null);
     }
 
     public ArticleService(ArticleRepository articles, ArticleCache cache) {
+        this(articles, cache, null);
+    }
+
+    @Autowired
+    public ArticleService(ArticleRepository articles, ArticleCache cache, ArticleSearchService searchService) {
         this.articles = articles;
         this.cache = cache;
+        this.searchService = searchService;
     }
 
     public Article create(ArticleCreateRequest request) {
         validate(request.title(), request.content());
         Long authorId = request.authorId() == null ? 0L : request.authorId();
-        return articles.save(request.title(), request.content(), authorId);
+        Article created = articles.save(request.title(), request.content(), authorId);
+        index(created);
+        return created;
     }
 
     public Optional<Article> get(Long id) {
@@ -37,13 +49,23 @@ public class ArticleService {
         validate(request.title(), request.content());
         Article updated = articles.update(id, request.title(), request.content());
         cache.evict(id);
+        index(updated);
         return updated;
     }
 
     public Optional<Article> delete(Long id) {
         Optional<Article> deleted = articles.delete(id);
         cache.evict(id);
+        if (searchService != null) {
+            searchService.delete(id);
+        }
         return deleted;
+    }
+
+    private void index(Article article) {
+        if (searchService != null) {
+            searchService.index(SearchDocument.from(article));
+        }
     }
 
     private static void validate(String title, String content) {
